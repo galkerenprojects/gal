@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { calculateScore } from "@/lib/scoring";
 
 export async function GET(req: NextRequest) {
+  const prisma = await getDb();
   const params = req.nextUrl.searchParams;
   const where: Record<string, unknown> = {};
 
@@ -25,6 +26,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
+  const prisma = await getDb();
   const data = await req.json();
 
   const player = await prisma.player.create({

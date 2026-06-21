@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import { calculateScore } from "@/lib/scoring";
 
 export async function GET(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const prisma = await getDb();
   const { id } = await params;
   const player = await prisma.player.findUnique({
     where: { id },
@@ -18,6 +19,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
 }
 
 export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const prisma = await getDb();
   const { id } = await params;
   const data = await req.json();
   const player = await prisma.player.update({
@@ -34,6 +36,7 @@ export async function PUT(req: NextRequest, { params }: { params: Promise<{ id: 
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const prisma = await getDb();
   const { id } = await params;
   await prisma.player.delete({ where: { id } });
   return NextResponse.json({ ok: true });

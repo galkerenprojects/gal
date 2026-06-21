@@ -1,10 +1,11 @@
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 import Link from "next/link";
 import { SeedButton } from "@/components/seed-button";
 
 export const dynamic = "force-dynamic";
 
 export default async function Dashboard() {
+  const prisma = await getDb();
   const total = await prisma.player.count();
   const aPlus = await prisma.player.count({ where: { grade: "A+" } });
   const a = await prisma.player.count({ where: { grade: "A" } });

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getDb } from "@/lib/db";
 
 export async function POST() {
+  const prisma = await getDb();
   // Create clubs
   const clubs = await Promise.all([
     prisma.club.upsert({ where: { name: "הפועל ראשון לציון" }, update: {}, create: { name: "הפועל ראשון לציון", region: "ראשון לציון", tier: "target", isTargetClub: true } }),
