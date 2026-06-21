@@ -1,0 +1,132 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Player {
+  id                String   @id @default(cuid())
+  fullName          String
+  birthDate         String?
+  birthYear         Int
+  currentClubId     String?
+  currentClub       Club?    @relation(fields: [currentClubId], references: [id])
+  previousClubs     String?  // JSON array of club names
+  position          String
+  secondaryPosition String?
+  region            String
+  league            String?
+  ageGroup          String?
+  appearances       Int      @default(0)
+  starts            Int      @default(0)
+  minutes           Int      @default(0)
+  goals             Int      @default(0)
+  assists           Int?
+  assistsVerified   Boolean  @default(false)
+  yellowCards       Int      @default(0)
+  redCards          Int      @default(0)
+  formerTopClub     Boolean  @default(false)
+  topClubName       String?
+  stuckInU19        Boolean  @default(false)
+  lateBloomer       Boolean  @default(false)
+  playsAboveAge     Boolean  @default(false)
+  realism           String   @default("Medium") // High / Medium / Low
+  score             Int      @default(0)
+  grade             String   @default("C") // A+ / A / B+ / B / C
+  verificationStatus String  @default("לא מספיק נתונים")
+  isExampleData     Boolean  @default(false)
+  filterTriggered   String?
+  whyInteresting    String?
+  nextAction        String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  playerMatches     PlayerMatch[]
+  sources           Source[]
+  scoutNotes        ScoutNote[]
+}
+
+model Club {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  region      String
+  tier        String   @default("regular") // top / target / regular
+  isTopClub   Boolean  @default(false)
+  isTargetClub Boolean @default(false)
+
+  players     Player[]
+  homeMatches Match[]  @relation("HomeTeam")
+  awayMatches Match[]  @relation("AwayTeam")
+}
+
+model Match {
+  id                      String   @id @default(cuid())
+  date                    String?
+  league                  String?
+  ageGroup                String?
+  homeTeamId              String?
+  homeTeam                Club?    @relation("HomeTeam", fields: [homeTeamId], references: [id])
+  awayTeamId              String?
+  awayTeam                Club?    @relation("AwayTeam", fields: [awayTeamId], references: [id])
+  homeTeamName            String
+  awayTeamName            String
+  result                  String?
+  round                   String?
+  isInterestingForScouting Boolean @default(false)
+  scoutingReason          String?
+  recommendedTeamToWatch  String?
+  recommendedPositions    String?
+  createdAt               DateTime @default(now())
+
+  playerMatches           PlayerMatch[]
+  scoutNotes              ScoutNote[]
+}
+
+model PlayerMatch {
+  id              String  @id @default(cuid())
+  playerId        String
+  player          Player  @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId         String
+  match           Match   @relation(fields: [matchId], references: [id], onDelete: Cascade)
+  started         Boolean @default(false)
+  minutes         Int     @default(0)
+  goals           Int     @default(0)
+  assists         Int     @default(0)
+  yellowCard      Boolean @default(false)
+  redCard         Boolean @default(false)
+  shirtNumber     Int?
+  positionInMatch String?
+  sourceUrl       String?
+}
+
+model Source {
+  id          String   @id @default(cuid())
+  playerId    String
+  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sourceType  String   // fa / juniorleague / club / matchsheet / video / other
+  title       String?
+  url         String?
+  notes       String?
+  reliability String   @default("לא אומת") // verified / partial / unverified
+  createdAt   DateTime @default(now())
+}
+
+model ScoutNote {
+  id             String   @id @default(cuid())
+  playerId       String
+  player         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  matchId        String?
+  match          Match?   @relation(fields: [matchId], references: [id])
+  scoutName      String
+  videoUrl       String?
+  minuteStart    Int?
+  minuteEnd      Int?
+  note           String
+  category       String?  // confidence / buildup / scanning / fatigue / leadership / positioning / etc
+  sentiment      String   @default("ניטרלי") // positive / neutral / concern
+  followUpNeeded Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}
