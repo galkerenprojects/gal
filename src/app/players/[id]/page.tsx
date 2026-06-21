@@ -2,7 +2,7 @@
 
 import { useEffect, useState, use } from "react";
 import { Badge } from "@/components/badge";
-import { GRADE_LABELS, REALISM_LABELS } from "@/lib/constants";
+import { GRADE_LABELS, REALISM_LABELS, SOURCE_TYPES, RELIABILITY_LEVELS, SOURCE_VERIFIES_OPTIONS, SOURCE_TYPE_TO_RELIABILITY } from "@/lib/constants";
 
 type Player = {
   id: string;
@@ -37,7 +37,7 @@ type Player = {
   whyInteresting: string | null;
   nextAction: string | null;
   currentClub: { name: string } | null;
-  sources: { id: string; sourceType: string; title: string | null; url: string | null; reliability: string }[];
+  sources: { id: string; sourceType: string; title: string | null; url: string | null; reliability: string; reliabilityLevel: number; verifies: string | null; notes: string | null }[];
   scoutNotes: { id: string; scoutName: string; note: string; sentiment: string; category: string | null; videoUrl: string | null; minuteStart: number | null; minuteEnd: number | null; followUpNeeded: boolean; createdAt: string }[];
   playerMatches: { id: string; started: boolean; minutes: number; goals: number; assists: number; match: { homeTeamName: string; awayTeamName: string; result: string | null; date: string | null } }[];
 };
@@ -46,7 +46,7 @@ export default function PlayerProfilePage({ params }: { params: Promise<{ id: st
   const { id } = use(params);
   const [player, setPlayer] = useState<Player | null>(null);
   const [noteForm, setNoteForm] = useState({ scoutName: "", note: "", sentiment: "ניטרלי", category: "", videoUrl: "", minuteStart: "", minuteEnd: "", followUpNeeded: false });
-  const [sourceForm, setSourceForm] = useState({ sourceType: "other", title: "", url: "", notes: "", reliability: "לא אומת" });
+  const [sourceForm, setSourceForm] = useState({ sourceType: "ifa", title: "", url: "", notes: "", verifies: "general", reliability: "לא אומת", reliabilityLevel: 1 });
 
   const load = () => fetch(`/api/players/${id}`).then(r => r.json()).then(setPlayer);
   useEffect(() => { load(); }, [id]);
@@ -71,14 +71,14 @@ export default function PlayerProfilePage({ params }: { params: Promise<{ id: st
   };
 
   const addSource = async () => {
-    await fetch(`/api/players/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}) });
+    const reliabilityLabel = sourceForm.reliabilityLevel <= 2 ? "מאומת" : sourceForm.reliabilityLevel <= 3 ? "חלקי" : "לא אומת";
     const res = await fetch("/api/sources", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ playerId: id, ...sourceForm }),
+      body: JSON.stringify({ playerId: id, ...sourceForm, reliability: reliabilityLabel }),
     });
     if (res.ok) {
-      setSourceForm({ sourceType: "other", title: "", url: "", notes: "", reliability: "לא אומת" });
+      setSourceForm({ sourceType: "ifa", title: "", url: "", notes: "", verifies: "general", reliability: "לא אומת", reliabilityLevel: 1 });
       load();
     }
   };
@@ -174,38 +174,87 @@ export default function PlayerProfilePage({ params }: { params: Promise<{ id: st
       <div className="bg-white rounded-lg border p-6">
         <h2 className="font-semibold mb-3">מקורות ועדויות</h2>
         {player.sources.length === 0 ? (
-          <p className="text-sm text-gray-400">דרוש אימות בגיליון משחק או וידאו.</p>
+          <div className="bg-red-50 border border-red-200 rounded p-3 text-sm text-red-800">
+            דרוש אימות בגיליון משחק או וידאו. אין מקורות רשומים לשחקן זה.
+          </div>
         ) : (
-          <div className="space-y-2">
-            {player.sources.map(s => (
-              <div key={s.id} className="flex items-center gap-3 p-2 bg-gray-50 rounded text-sm">
-                <Badge className="bg-gray-200 text-gray-700">{s.sourceType}</Badge>
-                <span>{s.title || s.url || "—"}</span>
-                {s.url && <a href={s.url} target="_blank" className="text-blue-600 hover:underline text-xs">קישור</a>}
-                <Badge className={s.reliability === "מאומת" ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-700"}>{s.reliability}</Badge>
-              </div>
-            ))}
+          <div className="space-y-3">
+            {player.sources.map(s => {
+              const sourceLabel = SOURCE_TYPES.find(st => st.value === s.sourceType)?.label || s.sourceType;
+              const relLevel = RELIABILITY_LEVELS[s.reliabilityLevel];
+              const verifiesLabel = SOURCE_VERIFIES_OPTIONS.find(v => v.value === s.verifies)?.label;
+              return (
+                <div key={s.id} className="p-3 bg-gray-50 rounded border text-sm">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <Badge className="bg-blue-100 text-blue-800">{sourceLabel}</Badge>
+                    {relLevel && <Badge className={relLevel.color}>{relLevel.label}</Badge>}
+                    {verifiesLabel && <Badge className="bg-gray-100 text-gray-700">מאמת: {verifiesLabel}</Badge>}
+                  </div>
+                  <div className="flex items-center gap-2 mt-1">
+                    {s.title && <span className="font-medium">{s.title}</span>}
+                    {s.url && <a href={s.url} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline text-xs truncate max-w-xs">{s.url}</a>}
+                  </div>
+                  {s.notes && <p className="text-xs text-gray-600 mt-1">{s.notes}</p>}
+                </div>
+              );
+            })}
+
+            {/* Missing info summary */}
+            <MissingInfoSummary sources={player.sources} player={player} />
           </div>
         )}
+
         <details className="mt-4">
-          <summary className="text-sm text-blue-600 cursor-pointer">הוספת מקור</summary>
-          <div className="mt-3 grid grid-cols-2 gap-3">
-            <select value={sourceForm.sourceType} onChange={e => setSourceForm(f => ({ ...f, sourceType: e.target.value }))} className="border rounded px-2 py-1.5 text-sm">
-              <option value="fa">ההתאחדות</option>
-              <option value="juniorleague">JuniorLeague</option>
-              <option value="club">מועדון</option>
-              <option value="matchsheet">גיליון משחק</option>
-              <option value="video">וידאו</option>
-              <option value="other">אחר</option>
-            </select>
-            <input placeholder="כותרת" value={sourceForm.title} onChange={e => setSourceForm(f => ({ ...f, title: e.target.value }))} className="border rounded px-2 py-1.5 text-sm" />
-            <input placeholder="URL" value={sourceForm.url} onChange={e => setSourceForm(f => ({ ...f, url: e.target.value }))} className="border rounded px-2 py-1.5 text-sm" />
-            <select value={sourceForm.reliability} onChange={e => setSourceForm(f => ({ ...f, reliability: e.target.value }))} className="border rounded px-2 py-1.5 text-sm">
-              <option value="מאומת">מאומת</option>
-              <option value="חלקי">חלקי</option>
-              <option value="לא אומת">לא אומת</option>
-            </select>
-            <button onClick={addSource} className="col-span-2 px-3 py-1.5 text-sm bg-blue-600 text-white rounded hover:bg-blue-700">הוסף מקור</button>
+          <summary className="text-sm text-blue-600 cursor-pointer font-medium">הוספת מקור</summary>
+          <div className="mt-3 space-y-3 bg-gray-50 p-4 rounded border">
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">סוג מקור</label>
+                <select
+                  value={sourceForm.sourceType}
+                  onChange={e => {
+                    const type = e.target.value;
+                    const level = SOURCE_TYPE_TO_RELIABILITY[type] || 5;
+                    setSourceForm(f => ({ ...f, sourceType: type, reliabilityLevel: level }));
+                  }}
+                  className="w-full border rounded px-2 py-1.5 text-sm"
+                >
+                  {SOURCE_TYPES.map(st => (
+                    <option key={st.value} value={st.value}>{st.label}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-400 mt-1">{SOURCE_TYPES.find(st => st.value === sourceForm.sourceType)?.description}</p>
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">מה המקור מאמת</label>
+                <select value={sourceForm.verifies} onChange={e => setSourceForm(f => ({ ...f, verifies: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm">
+                  {SOURCE_VERIFIES_OPTIONS.map(v => (
+                    <option key={v.value} value={v.value}>{v.label}</option>
+                  ))}
+                </select>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">כותרת</label>
+                <input placeholder="לדוגמה: כרטיס שחקן IFA" value={sourceForm.title} onChange={e => setSourceForm(f => ({ ...f, title: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm" />
+              </div>
+              <div>
+                <label className="block text-xs text-gray-500 mb-1">URL</label>
+                <input placeholder="https://..." value={sourceForm.url} onChange={e => setSourceForm(f => ({ ...f, url: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm" dir="ltr" />
+              </div>
+            </div>
+            <div>
+              <label className="block text-xs text-gray-500 mb-1">הערות</label>
+              <input placeholder="הערות נוספות על המקור" value={sourceForm.notes} onChange={e => setSourceForm(f => ({ ...f, notes: e.target.value }))} className="w-full border rounded px-2 py-1.5 text-sm" />
+            </div>
+            <div className="flex items-center gap-3">
+              <Badge className={RELIABILITY_LEVELS[sourceForm.reliabilityLevel]?.color || "bg-gray-100"}>
+                {RELIABILITY_LEVELS[sourceForm.reliabilityLevel]?.label || `רמה ${sourceForm.reliabilityLevel}`}
+              </Badge>
+              <span className="text-xs text-gray-400">רמת אמינות נקבעת אוטומטית לפי סוג המקור</span>
+            </div>
+            <button onClick={addSource} className="w-full px-3 py-2 text-sm bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">הוסף מקור</button>
           </div>
         </details>
       </div>
@@ -311,6 +360,40 @@ function Stat({ label, value }: { label: string; value: string | number }) {
     <div>
       <p className="text-xs text-gray-500">{label}</p>
       <p className="text-lg font-semibold">{value}</p>
+    </div>
+  );
+}
+
+function MissingInfoSummary({ sources, player }: { sources: Player["sources"]; player: Player }) {
+  const verifiedFields = new Set(sources.map(s => s.verifies).filter(Boolean));
+  const missing: string[] = [];
+
+  if (!verifiedFields.has("appearances") && !verifiedFields.has("general")) missing.push("הופעות — דרוש גיליון משחק IFA");
+  if (!verifiedFields.has("goals") && player.goals > 0) missing.push("שערים — דרוש אימות מגיליון משחק");
+  if (!verifiedFields.has("assists") && !player.assistsVerified) missing.push("בישולים — אין מקור בישולים מאומת");
+  if (!verifiedFields.has("minutes")) missing.push("דקות — דרוש אימות דקות משחק");
+  if (!verifiedFields.has("birthdate")) missing.push("תאריך לידה — דרוש אימות מכרטיס שחקן IFA");
+  if (!verifiedFields.has("position")) missing.push("עמדה — דרוש אימות מוידאו או גיליון");
+  if (player.formerTopClub && !verifiedFields.has("previous_club")) missing.push("מועדון קודם — דרוש אימות רקע במועדון גדול");
+  if (!verifiedFields.has("video")) missing.push("וידאו — דרוש צפייה ב-10 דקות ראשונות ואחרונות");
+
+  const bestLevel = sources.length > 0 ? Math.min(...sources.map(s => s.reliabilityLevel)) : 5;
+
+  if (missing.length === 0 && bestLevel <= 2) return null;
+
+  return (
+    <div className="bg-amber-50 border border-amber-200 rounded p-3 mt-2">
+      <h4 className="text-sm font-medium text-amber-900 mb-2">מידע חסר</h4>
+      {bestLevel > 2 && (
+        <p className="text-xs text-amber-700 mb-2">
+          המקור הטוב ביותר הוא רמה {bestLevel}. מומלץ להוסיף מקור רשמי (IFA / מועדון).
+        </p>
+      )}
+      {missing.length > 0 && (
+        <ul className="text-xs text-amber-800 space-y-1">
+          {missing.map((m, i) => <li key={i}>• {m}</li>)}
+        </ul>
+      )}
     </div>
   );
 }

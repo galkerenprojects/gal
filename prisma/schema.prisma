@@ -103,15 +103,17 @@ model PlayerMatch {
 }
 
 model Source {
-  id          String   @id @default(cuid())
-  playerId    String
-  player      Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
-  sourceType  String   // fa / juniorleague / club / matchsheet / video / other
-  title       String?
-  url         String?
-  notes       String?
-  reliability String   @default("לא אומת") // verified / partial / unverified
-  createdAt   DateTime @default(now())
+  id                String   @id @default(cuid())
+  playerId          String
+  player            Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  sourceType        String   // ifa / ifa_matchsheet / club_official / juniorleague / one_vole / sport5 / social_media / pixellot / agent_tip / other
+  title             String?
+  url               String?
+  notes             String?
+  verifies          String?  // what this source verifies: appearances / goals / birthdate / club / position / transfer / video / etc
+  reliabilityLevel  Int      @default(5) // 1=IFA official, 2=club official, 3=juniorleague/one/sport5, 4=social media, 5=agent/unverified
+  reliability       String   @default("לא אומת")
+  createdAt         DateTime @default(now())
 }
 
 model ScoutNote {

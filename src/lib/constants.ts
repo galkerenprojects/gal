@@ -51,3 +51,54 @@ export const REALISM_LABELS: Record<string, { label: string; color: string }> = 
   Medium: { label: "בינוני", color: "bg-yellow-100 text-yellow-800" },
   Low: { label: "נמוך", color: "bg-red-100 text-red-800" },
 };
+
+export const SOURCE_TYPES = [
+  { value: "ifa", label: "ההתאחדות לכדורגל (IFA)", description: "football.org.il — כרטיס שחקן, סגל, טבלאות" },
+  { value: "ifa_matchsheet", label: "גיליון משחק רשמי (IFA)", description: "football.org.il — הרכב, דקות, שערים, כרטיסים" },
+  { value: "club_official", label: "אתר מועדון רשמי", description: "אתר או עמוד רשמי של המועדון" },
+  { value: "juniorleague", label: "JuniorLeague", description: "juniorleague.co.il — כתבות נוער, מלך שערים, סיכומי עונה" },
+  { value: "one_vole", label: "ONE / Vole", description: "one.co.il / vole.one.co.il — העברות, חתימות, כתבות" },
+  { value: "sport5", label: "Sport5", description: "sport5.co.il — כתבות כדורגל נוער" },
+  { value: "social_media", label: "רשתות חברתיות", description: "אינסטגרם / פייסבוק רשמי של מועדון" },
+  { value: "pixellot", label: "Pixellot / IFA TV", description: "וידאו משחק — צפייה ב-10 דקות ראשונות/אחרונות" },
+  { value: "agent_tip", label: "סוכן / טיפ", description: "מידע מסוכן או מקור לא רשמי — דרוש אימות" },
+  { value: "other", label: "אחר", description: "מקור אחר" },
+] as const;
+
+export const RELIABILITY_LEVELS: Record<number, { label: string; color: string; description: string }> = {
+  1: { label: "רמה 1 — רשמי IFA", color: "bg-green-100 text-green-800", description: "אתר ההתאחדות / גיליון משחק רשמי" },
+  2: { label: "רמה 2 — מועדון רשמי", color: "bg-blue-100 text-blue-800", description: "הודעה רשמית של המועדון" },
+  3: { label: "רמה 3 — תקשורת", color: "bg-yellow-100 text-yellow-800", description: "JuniorLeague / ONE / Sport5" },
+  4: { label: "רמה 4 — רשתות חברתיות", color: "bg-orange-100 text-orange-800", description: "אינסטגרם / פייסבוק רשמי" },
+  5: { label: "רמה 5 — לא מאומת", color: "bg-red-100 text-red-800", description: "סוכן / רשתות / כיתוב וידאו — אינדיקציה בלבד" },
+};
+
+export const SOURCE_VERIFIES_OPTIONS = [
+  { value: "appearances", label: "הופעות" },
+  { value: "goals", label: "שערים" },
+  { value: "assists", label: "בישולים" },
+  { value: "minutes", label: "דקות" },
+  { value: "starts", label: "הרכבים" },
+  { value: "birthdate", label: "תאריך לידה" },
+  { value: "club", label: "מועדון נוכחי" },
+  { value: "previous_club", label: "מועדון קודם" },
+  { value: "position", label: "עמדה" },
+  { value: "transfer", label: "העברה" },
+  { value: "cards", label: "כרטיסים" },
+  { value: "lineup", label: "הרכב / סגל" },
+  { value: "video", label: "וידאו משחק" },
+  { value: "general", label: "מידע כללי" },
+] as const;
+
+export const SOURCE_TYPE_TO_RELIABILITY: Record<string, number> = {
+  ifa: 1,
+  ifa_matchsheet: 1,
+  club_official: 2,
+  juniorleague: 3,
+  one_vole: 3,
+  sport5: 3,
+  social_media: 4,
+  pixellot: 2,
+  agent_tip: 5,
+  other: 5,
+};

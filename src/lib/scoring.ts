@@ -14,7 +14,7 @@ type PlayerData = {
   lateBloomer: boolean;
   stuckInU19: boolean;
   verificationStatus: string;
-  sources?: { reliability: string }[];
+  sources?: { reliability: string; reliabilityLevel: number }[];
   scoutNotes?: { sentiment: string }[];
 };
 
@@ -83,9 +83,10 @@ export function calculateScore(player: PlayerData): { score: number; grade: stri
   const sources = player.sources || [];
   if (sources.length === 0) score += 1;
   else {
-    const verified = sources.filter(s => s.reliability === "מאומת").length;
-    const partial = sources.filter(s => s.reliability === "חלקי").length;
-    score += Math.min(verified * 4 + partial * 2, 10);
+    const level1 = sources.filter(s => s.reliabilityLevel <= 1).length;
+    const level2 = sources.filter(s => s.reliabilityLevel === 2).length;
+    const level3 = sources.filter(s => s.reliabilityLevel === 3).length;
+    score += Math.min(level1 * 4 + level2 * 3 + level3 * 1, 10);
   }
 
   // 9. Scout subjective (5)

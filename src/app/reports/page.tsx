@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { GRADE_LABELS, REALISM_LABELS } from "@/lib/constants";
+import { GRADE_LABELS, REALISM_LABELS, SOURCE_TYPES, RELIABILITY_LEVELS } from "@/lib/constants";
 
 type Player = {
   id: string;
@@ -28,6 +28,7 @@ type Player = {
   lateBloomer: boolean;
   playsAboveAge: boolean;
   currentClub: { name: string } | null;
+  sources: { sourceType: string; title: string | null; url: string | null; reliabilityLevel: number; verifies: string | null }[];
   scoutNotes: { note: string; sentiment: string; scoutName: string }[];
 };
 
@@ -47,6 +48,14 @@ export default function ReportsPage() {
     if (p.verificationStatus !== "מאומת") risks.push(`סטטוס אימות: ${p.verificationStatus}`);
     if (p.birthYear === 2009 && !p.playsAboveAge) risks.push("2009 ללא אינדיקציה למשחק מעל גיל");
 
+    const sourcesText = p.sources.length > 0
+      ? p.sources.map(s => {
+          const typeLabel = SOURCE_TYPES.find(st => st.value === s.sourceType)?.label || s.sourceType;
+          const levelLabel = RELIABILITY_LEVELS[s.reliabilityLevel]?.label || `רמה ${s.reliabilityLevel}`;
+          return `- ${typeLabel} | ${levelLabel}${s.verifies ? ` | מאמת: ${s.verifies}` : ""}${s.url ? ` | ${s.url}` : ""}`;
+        }).join("\n")
+      : "- אין מקורות רשומים. דרוש אימות בגיליון משחק או וידאו.";
+
     return `דוח סקאוטינג — ${p.fullName}
 ================================
 שנת לידה: ${p.birthYear}
@@ -65,6 +74,9 @@ ${p.whyInteresting || "דרוש תיעוד"}
 
 ${p.filterTriggered ? `פילטר: ${p.filterTriggered}` : ""}
 
+מקורות ועדויות:
+${sourcesText}
+
 סיכונים:
 ${risks.length > 0 ? risks.map(r => `- ${r}`).join("\n") : "- אין סיכונים ידועים"}
 
@@ -79,6 +91,12 @@ ${p.scoutNotes.length > 0 ? p.scoutNotes.map(n => `- ${n.scoutName}: ${n.note} (
 ${p.nextAction || "לקבוע צפייה"}
 
 סטטוס אימות: ${p.verificationStatus}
+
+מקורות נדרשים:
+- football.org.il — כרטיס שחקן, גיליון משחק
+- juniorleague.co.il — כתבות נוער, מלכי שערים
+- one.co.il / vole.one.co.il — העברות, חתימות
+- Pixellot / IFA TV — וידאו משחק
 ================================`;
   };
 
